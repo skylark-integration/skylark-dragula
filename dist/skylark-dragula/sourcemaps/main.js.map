@@ -1,0 +1,1 @@
+{"version":3,"sources":["main.js"],"names":["define","dragula"],"mappings":";;;;;;;AAAAA,QACC,aACC,SAASC,GACV,OAAOA","file":"../main.js","sourcesContent":["define([\r\n\t\"./dragula\"\r\n],function(dragula){\r\n\treturn dragula;\r\n});"]}

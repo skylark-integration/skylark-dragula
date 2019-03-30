@@ -1,0 +1,1 @@
+{"version":3,"sources":["atoa.js"],"names":["define","a","n","Array","prototype","slice","call"],"mappings":";;;;;;;AAAAA,UAAU,WACN,OAAO,SAAcC,EAAGC,GACpB,OAAOC,MAAMC,UAAUC,MAAMC,KAAKL,EAAGC","file":"../atoa.js","sourcesContent":["define([],function(){\r\n    return function atoa(a, n) {\r\n        return Array.prototype.slice.call(a, n);\r\n    };\r\n});"]}
