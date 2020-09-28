@@ -1,4 +1,9 @@
-define([],function(){
+define([
+    "skylark-langx-events/Event"
+],function(Event){
+    return Event;
+
+    /*
     var global = window;
 
     var NativeCustomEvent = global.CustomEvent;
@@ -15,13 +20,6 @@ define([],function(){
         return false;
     }
 
-    /**
-     * Cross-browser `CustomEvent` constructor.
-     *
-     * https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent.CustomEvent
-     *
-     * @public
-     */
 
     return useNative() ? NativeCustomEvent :
 
@@ -51,4 +49,7 @@ define([],function(){
             }
             return e;
         }
+
+    */
+
 });

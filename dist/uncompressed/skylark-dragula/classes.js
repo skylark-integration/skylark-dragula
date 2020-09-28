@@ -1,4 +1,7 @@
-define([],function(){
+define([
+    "skylark-domx-styler"
+],function(styler){
+  /*
   var cache = {};
   var start = '(?:^|\\s)';
   var end = '(?:\\s|$)';
@@ -30,5 +33,11 @@ define([],function(){
     add: addClass,
     rm: rmClass
   };
+  */
+
+  return {
+    add :  styler.addClass,
+    rm : styler.removeClass
+  }
 
 });

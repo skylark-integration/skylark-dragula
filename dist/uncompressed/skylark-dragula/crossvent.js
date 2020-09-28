@@ -1,4 +1,15 @@
 define([
+    "skylark-domx-eventer"
+],function(eventer){
+    return {
+        add : eventer.on,
+        remove : eventer.off
+    }
+
+});
+
+/*
+define([
 	"./custom-event",
 	"./eventmap"
 ],function(customEvent,eventmap){
@@ -112,3 +123,5 @@ define([
     };
 
 });
+
+*/

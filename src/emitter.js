@@ -1,4 +1,26 @@
 define([
+    "skylark-langx-emitter/Emitter"
+],function(Emitter){
+
+    var Emitter2 = Emitter.inherit({
+        _prepareArgs : function(e,args) {
+            return args;
+        },
+        init : function(thing, options) {
+            var opts = options || {};
+            if (thing === undefined) {
+                thing = {};
+            }
+
+            Object.assign(this,thing);
+        }
+    });
+
+    return Emitter2;
+});
+
+/*
+define([
 	"./atoa",
 	"./debounce"
 ],function(atoa,debounce){
@@ -68,3 +90,5 @@ define([
 
     return emitter;
 });
+
+*/

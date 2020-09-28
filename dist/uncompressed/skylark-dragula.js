@@ -75,7 +75,7 @@
   factory(define,require);
 
   if (!isAmd) {
-    var skylarkjs = require("skylark-langx/skylark");
+    var skylarkjs = require("skylark-langx-ns");
 
     if (isCmd) {
       module.exports = skylarkjs;
@@ -86,40 +86,29 @@
 
 })(function(define,require) {
 
-define('skylark-dragula/atoa',[],function(){
-    return function atoa(a, n) {
-        return Array.prototype.slice.call(a, n);
-    };
-});
-define('skylark-dragula/ticky',[],function(){
-    var si = typeof setImmediate === 'function',
-        tick;
-    if (si) {
-        tick = function(fn) {
-            setImmediate(fn);
-        };
-    } else {
-        tick = function(fn) {
-            setTimeout(fn, 0);
-        };
-    }
-
-    return tick;
-});
-define('skylark-dragula/debounce',[
-	"./ticky"
-],function(ticky){
-    return function debounce(fn, args, ctx) {
-        if (!fn) {
-            return;
-        }
-        ticky(function run() {
-            fn.apply(ctx || null, args || []);
-        });
-    };
-
-});
 define('skylark-dragula/emitter',[
+    "skylark-langx-emitter/Emitter"
+],function(Emitter){
+
+    var Emitter2 = Emitter.inherit({
+        _prepareArgs : function(e,args) {
+            return args;
+        },
+        init : function(thing, options) {
+            var opts = options || {};
+            if (thing === undefined) {
+                thing = {};
+            }
+
+            Object.assign(this,thing);
+        }
+    });
+
+    return Emitter2;
+});
+
+/*
+define([
 	"./atoa",
 	"./debounce"
 ],function(atoa,debounce){
@@ -189,77 +178,20 @@ define('skylark-dragula/emitter',[
 
     return emitter;
 });
-define('skylark-dragula/custom-event',[],function(){
-    var global = window;
 
-    var NativeCustomEvent = global.CustomEvent;
-
-    function useNative() {
-        try {
-            var p = new NativeCustomEvent('cat', {
-                detail: {
-                    foo: 'bar'
-                }
-            });
-            return 'cat' === p.type && 'bar' === p.detail.foo;
-        } catch (e) {}
-        return false;
-    }
-
-    /**
-     * Cross-browser `CustomEvent` constructor.
-     *
-     * https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent.CustomEvent
-     *
-     * @public
-     */
-
-    return useNative() ? NativeCustomEvent :
-
-        // IE >= 9
-        'function' === typeof document.createEvent ? function CustomEvent(type, params) {
-            var e = document.createEvent('CustomEvent');
-            if (params) {
-                e.initCustomEvent(type, params.bubbles, params.cancelable, params.detail);
-            } else {
-                e.initCustomEvent(type, false, false, void 0);
-            }
-            return e;
-        } :
-
-        // IE <= 8
-        function CustomEvent(type, params) {
-            var e = document.createEventObject();
-            e.type = type;
-            if (params) {
-                e.bubbles = Boolean(params.bubbles);
-                e.cancelable = Boolean(params.cancelable);
-                e.detail = params.detail;
-            } else {
-                e.bubbles = false;
-                e.cancelable = false;
-                e.detail = void 0;
-            }
-            return e;
-        }
-});
-define('skylark-dragula/eventmap',[],function(){
-    'use strict';
-    var global = window;
-
-    var eventmap = [];
-    var eventname = '';
-    var ron = /^on/;
-
-    for (eventname in global) {
-        if (ron.test(eventname)) {
-            eventmap.push(eventname.slice(2));
-        }
-    }
-
-    return eventmap;
-});
+*/;
 define('skylark-dragula/crossvent',[
+    "skylark-domx-eventer"
+],function(eventer){
+    return {
+        add : eventer.on,
+        remove : eventer.off
+    }
+
+});
+
+/*
+define([
 	"./custom-event",
 	"./eventmap"
 ],function(customEvent,eventmap){
@@ -373,7 +305,12 @@ define('skylark-dragula/crossvent',[
     };
 
 });
-define('skylark-dragula/classes',[],function(){
+
+*/;
+define('skylark-dragula/classes',[
+    "skylark-domx-styler"
+],function(styler){
+  /*
   var cache = {};
   var start = '(?:^|\\s)';
   var end = '(?:\\s|$)';
@@ -405,14 +342,37 @@ define('skylark-dragula/classes',[],function(){
     add: addClass,
     rm: rmClass
   };
+  */
+
+  return {
+    add :  styler.addClass,
+    rm : styler.removeClass
+  }
 
 });
 define('skylark-dragula/dragula',[
   "skylark-langx/skylark",
+  "skylark-devices-points/mouse",
+  "skylark-devices-points/touch",
+  "skylark-domx-noder",
+  "skylark-domx-finder",
+  "skylark-domx-geom",
+  "skylark-domx-eventer",
   "./emitter",
   "./crossvent",
   "./classes"
-],function(skylark,emitter,crossvent,classes){
+],function(
+  skylark,
+  mouse,
+  touch,
+  noder,
+  finder,
+  geom,
+  eventer,
+  emitter,
+  crossvent,
+  classes
+){
 
     'use strict';
     var global = window;
@@ -544,7 +504,8 @@ define('skylark-dragula/dragula',[
         if (o.ignoreInputTextSelection) {
           var clientX = getCoord('clientX', e);
           var clientY = getCoord('clientY', e);
-          var elementBehindCursor = doc.elementFromPoint(clientX, clientY);
+          //var elementBehindCursor = doc.elementFromPoint(clientX, clientY);
+          var elementBehindCursor = noder.fromPoint(clientX,clientY);
           if (isInput(elementBehindCursor)) {
             return;
           }
@@ -881,7 +842,8 @@ define('skylark-dragula/dragula',[
           var rect;
           for (i = 0; i < len; i++) {
             el = dropTarget.children[i];
-            rect = el.getBoundingClientRect();
+            //rect = el.getBoundingClientRect();
+            rect = geom.boundingRect(el);
             if (horizontal && (rect.left + rect.width / 2) > x) { return el; }
             if (!horizontal && (rect.top + rect.height / 2) > y) { return el; }
           }
@@ -889,11 +851,14 @@ define('skylark-dragula/dragula',[
         }
 
         function inside () { // faster, but only available if dropped inside a child element
-          var rect = target.getBoundingClientRect();
+          
+          //var rect = target.getBoundingClientRect();
+          var  rect = geom.boundingRect(target);
           if (horizontal) {
             return resolve(x > rect.left + getRectWidth(rect) / 2);
           }
           return resolve(y > rect.top + getRectHeight(rect) / 2);
+          
         }
 
         function resolve (after) {
@@ -906,7 +871,10 @@ define('skylark-dragula/dragula',[
       }
     }
 
+
+    
     function touchy (el, op, type, fn) {
+      /*
       var touch = {
         mouseup: 'touchend',
         mousedown: 'touchstart',
@@ -930,9 +898,23 @@ define('skylark-dragula/dragula',[
         crossvent[op](el, touch[type], fn);
         crossvent[op](el, type, fn);
       }
+      */
+      if (op == "add") {
+        eventer.on(el,type,fn);
+      } else {
+        eventer.off(el,type,fn);
+      }
+
+      if (!el.touchInited) {
+        el.touchInited = true;   
+        touch.mousy(el);     
+      }
+
+
     }
 
     function whichMouseButton (e) {
+    
       if (e.touches !== void 0) { return e.touches.length; }
       if (e.which !== void 0 && e.which !== 0) { return e.which; } // see https://github.com/bevacqua/dragula/issues/261
       if (e.buttons !== void 0) { return e.buttons; }
@@ -940,16 +922,21 @@ define('skylark-dragula/dragula',[
       if (button !== void 0) { // see https://github.com/jquery/jquery/blob/99e8ff1baa7ae341e94bb89c3e84570c7c3ad9ea/src/event.js#L573-L575
         return button & 1 ? 1 : button & 2 ? 3 : (button & 4 ? 2 : 0);
       }
+
     }
 
     function getOffset (el) {
+      /*
       var rect = el.getBoundingClientRect();
       return {
         left: rect.left + getScroll('scrollLeft', 'pageXOffset'),
         top: rect.top + getScroll('scrollTop', 'pageYOffset')
       };
+      */
+      return geom.pagePosition(el);
     }
 
+    /*
     function getScroll (scrollProp, offsetProp) {
       if (typeof global[offsetProp] !== 'undefined') {
         return global[offsetProp];
@@ -959,6 +946,7 @@ define('skylark-dragula/dragula',[
       }
       return doc.body[scrollProp];
     }
+    */
 
     function getElementBehindPoint (point, x, y) {
       var p = point || {};
@@ -970,20 +958,41 @@ define('skylark-dragula/dragula',[
       return el;
     }
 
-    function never () { return false; }
-    function always () { return true; }
-    function getRectWidth (rect) { return rect.width || (rect.right - rect.left); }
-    function getRectHeight (rect) { return rect.height || (rect.bottom - rect.top); }
-    function getParent (el) { return el.parentNode === doc ? null : el.parentNode; }
-    function isInput (el) { return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || isEditable(el); }
+    function never () { 
+      return false; 
+    }
+    function always () { 
+      return true; 
+    }
+    function getRectWidth (rect) { 
+      return rect.width || (rect.right - rect.left); 
+    }
+    function getRectHeight (rect) { 
+      return rect.height || (rect.bottom - rect.top); 
+    }
+    function getParent (el) { 
+      //return el.parentNode === doc ? null : el.parentNode; 
+      return finder.parent(el);
+    }
+    function isInput (el) {
+      // return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || isEditable(el); 
+      return noder.isInput(el);
+   }
+    
+    
     function isEditable (el) {
+      /*
       if (!el) { return false; } // no parents were editable
       if (el.contentEditable === 'false') { return false; } // stop the lookup
       if (el.contentEditable === 'true') { return true; } // found a contentEditable element in the chain
       return isEditable(getParent(el)); // contentEditable is set to 'inherit'
+      */
+      return noder.isEditable(el);
     }
+    
 
     function nextEl (el) {
+      /*
       return el.nextElementSibling || manually();
       function manually () {
         var sibling = el;
@@ -992,6 +1001,8 @@ define('skylark-dragula/dragula',[
         } while (sibling && sibling.nodeType !== 1);
         return sibling;
       }
+      */
+      return finder.nextSibling(el);
     }
 
     function getEventHost (e) {
@@ -1019,7 +1030,7 @@ define('skylark-dragula/dragula',[
       return host[coord];
     }
 
-    return skylark.dragula = dragula;
+    return skylark.attach("intg.dragula",dragula);
 
 });
 
