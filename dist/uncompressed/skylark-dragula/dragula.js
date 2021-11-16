@@ -597,12 +597,12 @@ define([
     */
 
     function getElementBehindPoint (point, x, y) {
-      var p = point || {};
-      var state = p.className;
+      //var p = point || {}; /
+      //var state = p.className;
       var el;
-      p.className += ' gu-hide';
+      //p.className += ' gu-hide'; // use point-events css property
       el = doc.elementFromPoint(x, y);
-      p.className = state;
+      //p.className = state;
       return el;
     }
 

@@ -20,10 +20,9 @@
     "url": "https://github.com/skylark-integration/skylark-dragula/issues"
   },
   "files": [
-    "demos/",
     "dist/",
-    "src/",
-    "skins/"
+    "skins/",
+    "themes/"
   ],
   "license": "MIT",
   "dependencies": {
