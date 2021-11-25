@@ -314,7 +314,7 @@ define('skylark-dragula/dragula',[
         _grabbed = context;
         eventualMovements();
         if (e.type === 'mousedown') {
-          if (isInput(item)) { // see also: https://github.com/bevacqua/dragula/issues/208
+          if (noder.isInput(item)) { // see also: https://github.com/bevacqua/dragula/issues/208
             item.focus(); // fixes https://github.com/bevacqua/dragula/issues/176
           } else {
             e.preventDefault(); // fixes https://github.com/bevacqua/dragula/issues/155
@@ -339,7 +339,7 @@ define('skylark-dragula/dragula',[
           var clientY = getCoord('clientY', e);
           //var elementBehindCursor = doc.elementFromPoint(clientX, clientY);
           var elementBehindCursor = noder.fromPoint(clientX,clientY);
-          if (isInput(elementBehindCursor)) {
+          if (noder.isInput(elementBehindCursor)) {
             return;
           }
         }
@@ -350,7 +350,7 @@ define('skylark-dragula/dragula',[
         end();
         start(grabbed);
 
-        var offset = getOffset(_item);
+        var offset = geom.pagePosition(_item);
         _offsetX = getCoord('pageX', e) - offset.left;
         _offsetY = getCoord('pageY', e) - offset.top;
 
@@ -367,16 +367,16 @@ define('skylark-dragula/dragula',[
           return; // don't drag container itself
         }
         var handle = item;
-        while (getParent(item) && isContainer(getParent(item)) === false) {
+        while (finder.parent(item) && isContainer(finder.parent(item)) === false) {
           if (o.invalid(item, handle)) {
             return;
           }
-          item = getParent(item); // drag target should be a top element
+          item = finder.parent(item); // drag target should be a top element
           if (!item) {
             return;
           }
         }
-        var source = getParent(item);
+        var source = finder.parent(item);
         if (!source) {
           return;
         }
@@ -384,7 +384,7 @@ define('skylark-dragula/dragula',[
           return;
         }
 
-        var movable = o.moves(item, source, handle, nextEl(item));
+        var movable = o.moves(item, source, handle, finder.nextSibling(item));
         if (!movable) {
           return;
         }
@@ -414,7 +414,7 @@ define('skylark-dragula/dragula',[
 
         _source = context.source;
         _item = context.item;
-        _initialSibling = _currentSibling = nextEl(context.item);
+        _initialSibling = _currentSibling = finder.nextSibling(context.item);
 
         drake.dragging = true;
         drake.emit('drag', _item, _source);
@@ -429,7 +429,7 @@ define('skylark-dragula/dragula',[
           return;
         }
         var item = _copy || _item;
-        drop(item, getParent(item));
+        drop(item, finder.parent(item));
       }
 
       function ungrab () {
@@ -447,7 +447,7 @@ define('skylark-dragula/dragula',[
         var item = _copy || _item;
         var clientX = getCoord('clientX', e);
         var clientY = getCoord('clientY', e);
-        var elementBehindCursor = getElementBehindPoint(_mirror, clientX, clientY);
+        var elementBehindCursor = noder.fromPoint(clientX, clientY);
         var dropTarget = findDropTarget(elementBehindCursor, clientX, clientY);
         if (dropTarget && ((_copy && o.copySortSource) || (!_copy || dropTarget !== _source))) {
           drop(item, dropTarget);
@@ -459,7 +459,7 @@ define('skylark-dragula/dragula',[
       }
 
       function drop (item, target) {
-        var parent = getParent(item);
+        var parent = finder.parent(item);
         if (_copy && o.copySortSource && target === _source) {
           parent.removeChild(_item);
         }
@@ -476,7 +476,7 @@ define('skylark-dragula/dragula',[
           return;
         }
         var item = _copy || _item;
-        var parent = getParent(item);
+        var parent = finder.parent(item);
         if (parent) {
           parent.removeChild(item);
         }
@@ -490,7 +490,7 @@ define('skylark-dragula/dragula',[
         }
         var reverts = arguments.length > 0 ? revert : o.revertOnSpill;
         var item = _copy || _item;
-        var parent = getParent(item);
+        var parent = finder.parent(item);
         var initial = isInitialPlacement(parent);
         if (initial === false && reverts) {
           if (_copy) {
@@ -534,7 +534,7 @@ define('skylark-dragula/dragula',[
         } else if (_mirror) {
           sibling = _currentSibling;
         } else {
-          sibling = nextEl(_copy || _item);
+          sibling = finder.nextSibling(_copy || _item);
         }
         return target === _source && sibling === _initialSibling;
       }
@@ -542,7 +542,7 @@ define('skylark-dragula/dragula',[
       function findDropTarget (elementBehindCursor, clientX, clientY) {
         var target = elementBehindCursor;
         while (target && !accepted()) {
-          target = getParent(target);
+          target = finder.parent(target);
         }
         return target;
 
@@ -577,7 +577,7 @@ define('skylark-dragula/dragula',[
         _mirror.style.top = y + 'px';
 
         var item = _copy || _item;
-        var elementBehindCursor = getElementBehindPoint(_mirror, clientX, clientY);
+        var elementBehindCursor = noder.fromPoint( clientX, clientY);
         var dropTarget = findDropTarget(elementBehindCursor, clientX, clientY);
         var changed = dropTarget !== null && dropTarget !== _lastDropTarget;
         if (changed || dropTarget === null) {
@@ -585,7 +585,7 @@ define('skylark-dragula/dragula',[
           _lastDropTarget = dropTarget;
           over();
         }
-        var parent = getParent(item);
+        var parent = finder.parent(item);
         if (dropTarget === _source && _copy && !o.copySortSource) {
           if (parent) {
             parent.removeChild(item);
@@ -608,7 +608,7 @@ define('skylark-dragula/dragula',[
         if (
           (reference === null && changed) ||
           reference !== item &&
-          reference !== nextEl(item)
+          reference !== finder.nextSibling(item)
         ) {
           _currentSibling = reference;
           dropTarget.insertBefore(item, reference);
@@ -647,15 +647,15 @@ define('skylark-dragula/dragula',[
         if (_mirror) {
           styler.removeClass(o.mirrorContainer, 'gu-unselectable');
           touchy(documentElement, 'remove', 'mousemove', drag);
-          getParent(_mirror).removeChild(_mirror);
+          finder.parent(_mirror).removeChild(_mirror);
           _mirror = null;
         }
       }
 
       function getImmediateChild (dropTarget, target) {
         var immediate = target;
-        while (immediate !== dropTarget && getParent(immediate) !== dropTarget) {
-          immediate = getParent(immediate);
+        while (immediate !== dropTarget && finder.parent(immediate) !== dropTarget) {
+          immediate = finder.parent(immediate);
         }
         if (immediate === documentElement) {
           return null;
@@ -695,7 +695,7 @@ define('skylark-dragula/dragula',[
         }
 
         function resolve (after) {
-          return after ? nextEl(target) : target;
+          return after ? finder.nextSibling(target) : target;
         }
       }
 
@@ -733,20 +733,6 @@ define('skylark-dragula/dragula',[
 
     }
 
-    function getOffset (el) {
-
-      return geom.pagePosition(el);
-    }
-
-    function getElementBehindPoint (point, x, y) {
-      //var p = point || {}; /
-      //var state = p.className;
-      var el;
-      //p.className += ' gu-hide'; // use point-events css property
-      el = doc.elementFromPoint(x, y);
-      //p.className = state;
-      return el;
-    }
 
     function never () { 
       return false; 
@@ -760,30 +746,7 @@ define('skylark-dragula/dragula',[
     function getRectHeight (rect) { 
       return rect.height || (rect.bottom - rect.top); 
     }
-    function getParent (el) { 
-      //return el.parentNode === doc ? null : el.parentNode; 
-      return finder.parent(el);
-    }
-    function isInput (el) {
-      // return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || isEditable(el); 
-      return noder.isInput(el);
-   }
-    
-    
-    function isEditable (el) {
-      /*
-      if (!el) { return false; } // no parents were editable
-      if (el.contentEditable === 'false') { return false; } // stop the lookup
-      if (el.contentEditable === 'true') { return true; } // found a contentEditable element in the chain
-      return isEditable(getParent(el)); // contentEditable is set to 'inherit'
-      */
-      return noder.isEditable(el);
-    }
-    
 
-    function nextEl (el) {
-      return finder.nextSibling(el);
-    }
 
     function getEventHost (e) {
       // on touchend event, we have to use `e.changedTouches`
