@@ -26,6 +26,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "skylark-domx-plugins-dnd": "git+https://github.com/skylark-domx-plugins/skylark-domx-plugins-dnd.git",
     "skylark-devices-points": "git+https://github.com/skylark-devices/skylark-devices-points.git",
     "skylark-domx": "git+https://github.com/skylark-domx/skylark-domx.git",
     "skylark-langx": "git+https://github.com/skylark-langx/skylark-langx.git"
