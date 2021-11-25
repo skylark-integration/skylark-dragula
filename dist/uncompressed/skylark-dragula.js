@@ -86,6 +86,11 @@
 
 })(function(define,require) {
 
+define('skylark-langx-emitter/Emitter',[
+    "skylark-langx-events"
+],function(events){
+    return events.Emitter;
+});
 define('skylark-dragula/emitter',[
     "skylark-langx-emitter/Emitter"
 ],function(Emitter){
@@ -180,176 +185,6 @@ define([
 });
 
 */;
-define('skylark-dragula/crossvent',[
-    "skylark-domx-eventer"
-],function(eventer){
-    return {
-        add : eventer.on,
-        remove : eventer.off
-    }
-
-});
-
-/*
-define([
-	"./custom-event",
-	"./eventmap"
-],function(customEvent,eventmap){
-    'use strict';
-    var global = window;
-    
-    var doc = global.document;
-    var addEvent = addEventEasy;
-    var removeEvent = removeEventEasy;
-    var hardCache = [];
-
-    if (!global.addEventListener) {
-        addEvent = addEventHard;
-        removeEvent = removeEventHard;
-    }
-
-    function addEventEasy(el, type, fn, capturing) {
-        return el.addEventListener(type, fn, capturing);
-    }
-
-    function addEventHard(el, type, fn) {
-        return el.attachEvent('on' + type, wrap(el, type, fn));
-    }
-
-    function removeEventEasy(el, type, fn, capturing) {
-        return el.removeEventListener(type, fn, capturing);
-    }
-
-    function removeEventHard(el, type, fn) {
-        var listener = unwrap(el, type, fn);
-        if (listener) {
-            return el.detachEvent('on' + type, listener);
-        }
-    }
-
-    function fabricateEvent(el, type, model) {
-        var e = eventmap.indexOf(type) === -1 ? makeCustomEvent() : makeClassicEvent();
-        if (el.dispatchEvent) {
-            el.dispatchEvent(e);
-        } else {
-            el.fireEvent('on' + type, e);
-        }
-
-        function makeClassicEvent() {
-            var e;
-            if (doc.createEvent) {
-                e = doc.createEvent('Event');
-                e.initEvent(type, true, true);
-            } else if (doc.createEventObject) {
-                e = doc.createEventObject();
-            }
-            return e;
-        }
-
-        function makeCustomEvent() {
-            return new customEvent(type, {
-                detail: model
-            });
-        }
-    }
-
-    function wrapperFactory(el, type, fn) {
-        return function wrapper(originalEvent) {
-            var e = originalEvent || global.event;
-            e.target = e.target || e.srcElement;
-            e.preventDefault = e.preventDefault || function preventDefault() {
-                e.returnValue = false;
-            };
-            e.stopPropagation = e.stopPropagation || function stopPropagation() {
-                e.cancelBubble = true;
-            };
-            e.which = e.which || e.keyCode;
-            fn.call(el, e);
-        };
-    }
-
-    function wrap(el, type, fn) {
-        var wrapper = unwrap(el, type, fn) || wrapperFactory(el, type, fn);
-        hardCache.push({
-            wrapper: wrapper,
-            element: el,
-            type: type,
-            fn: fn
-        });
-        return wrapper;
-    }
-
-    function unwrap(el, type, fn) {
-        var i = find(el, type, fn);
-        if (i) {
-            var wrapper = hardCache[i].wrapper;
-            hardCache.splice(i, 1); // free up a tad of memory
-            return wrapper;
-        }
-    }
-
-    function find(el, type, fn) {
-        var i, item;
-        for (i = 0; i < hardCache.length; i++) {
-            item = hardCache[i];
-            if (item.element === el && item.type === type && item.fn === fn) {
-                return i;
-            }
-        }
-    }
-
-    return  {
-        add: addEvent,
-        remove: removeEvent,
-        fabricate: fabricateEvent
-    };
-
-});
-
-*/;
-define('skylark-dragula/classes',[
-    "skylark-domx-styler"
-],function(styler){
-  /*
-  var cache = {};
-  var start = '(?:^|\\s)';
-  var end = '(?:\\s|$)';
-
-  function lookupClass (className) {
-    var cached = cache[className];
-    if (cached) {
-      cached.lastIndex = 0;
-    } else {
-      cache[className] = cached = new RegExp(start + className + end, 'g');
-    }
-    return cached;
-  }
-
-  function addClass (el, className) {
-    var current = el.className;
-    if (!current.length) {
-      el.className = className;
-    } else if (!lookupClass(className).test(current)) {
-      el.className += ' ' + className;
-    }
-  }
-
-  function rmClass (el, className) {
-    el.className = el.className.replace(lookupClass(className), ' ').trim();
-  }
-
-  return {
-    add: addClass,
-    rm: rmClass
-  };
-  */
-
-  return {
-    add :  styler.addClass,
-    rm : styler.removeClass
-  }
-
-});
 define('skylark-dragula/dragula',[
   "skylark-langx/skylark",
   "skylark-devices-points/mouse",
@@ -358,9 +193,8 @@ define('skylark-dragula/dragula',[
   "skylark-domx-finder",
   "skylark-domx-geom",
   "skylark-domx-eventer",
-  "./emitter",
-  "./crossvent",
-  "./classes"
+  "skylark-domx-styler",
+  "./emitter"
 ],function(
   skylark,
   mouse,
@@ -369,9 +203,8 @@ define('skylark-dragula/dragula',[
   finder,
   geom,
   eventer,
+  styler,
   emitter,
-  crossvent,
-  classes
 ){
 
     'use strict';
@@ -449,9 +282,9 @@ define('skylark-dragula/dragula',[
       }
 
       function movements (remove) {
-        var op = remove ? 'remove' : 'add';
-        crossvent[op](documentElement, 'selectstart', preventGrabbed); // IE8
-        crossvent[op](documentElement, 'click', preventGrabbed);
+        var op = remove ? 'off' : 'on';
+        eventer[op](documentElement, 'selectstart', preventGrabbed); // IE8
+        eventer[op](documentElement, 'click', preventGrabbed);
       }
 
       function destroy () {
@@ -521,7 +354,7 @@ define('skylark-dragula/dragula',[
         _offsetX = getCoord('pageX', e) - offset.left;
         _offsetY = getCoord('pageY', e) - offset.top;
 
-        classes.add(_copy || _item, 'gu-transit');
+        styler.addClass(_copy || _item, 'gu-transit');
         renderMirrorImage();
         drag(e);
       }
@@ -681,7 +514,7 @@ define('skylark-dragula/dragula',[
         ungrab();
         removeMirrorImage();
         if (item) {
-          classes.rm(item, 'gu-transit');
+          styler.removeClass(item, 'gu-transit');
         }
         if (_renderTimer) {
           clearTimeout(_renderTimer);
@@ -787,11 +620,11 @@ define('skylark-dragula/dragula',[
       }
 
       function spillOver (el) {
-        classes.rm(el, 'gu-hide');
+        styler.removeClass(el, 'gu-hide');
       }
 
       function spillOut (el) {
-        if (drake.dragging) { classes.add(el, 'gu-hide'); }
+        if (drake.dragging) { styler.addClass(el, 'gu-hide'); }
       }
 
       function renderMirrorImage () {
@@ -802,17 +635,17 @@ define('skylark-dragula/dragula',[
         _mirror = _item.cloneNode(true);
         _mirror.style.width = getRectWidth(rect) + 'px';
         _mirror.style.height = getRectHeight(rect) + 'px';
-        classes.rm(_mirror, 'gu-transit');
-        classes.add(_mirror, 'gu-mirror');
+        styler.removeClass(_mirror, 'gu-transit');
+        styler.addClass(_mirror, 'gu-mirror');
         o.mirrorContainer.appendChild(_mirror);
         touchy(documentElement, 'add', 'mousemove', drag);
-        classes.add(o.mirrorContainer, 'gu-unselectable');
+        styler.addClass(o.mirrorContainer, 'gu-unselectable');
         drake.emit('cloned', _mirror, _item, 'mirror');
       }
 
       function removeMirrorImage () {
         if (_mirror) {
-          classes.rm(o.mirrorContainer, 'gu-unselectable');
+          styler.removeClass(o.mirrorContainer, 'gu-unselectable');
           touchy(documentElement, 'remove', 'mousemove', drag);
           getParent(_mirror).removeChild(_mirror);
           _mirror = null;
@@ -874,31 +707,6 @@ define('skylark-dragula/dragula',[
 
     
     function touchy (el, op, type, fn) {
-      /*
-      var touch = {
-        mouseup: 'touchend',
-        mousedown: 'touchstart',
-        mousemove: 'touchmove'
-      };
-      var pointers = {
-        mouseup: 'pointerup',
-        mousedown: 'pointerdown',
-        mousemove: 'pointermove'
-      };
-      var microsoft = {
-        mouseup: 'MSPointerUp',
-        mousedown: 'MSPointerDown',
-        mousemove: 'MSPointerMove'
-      };
-      if (global.navigator.pointerEnabled) {
-        crossvent[op](el, pointers[type], fn);
-      } else if (global.navigator.msPointerEnabled) {
-        crossvent[op](el, microsoft[type], fn);
-      } else {
-        crossvent[op](el, touch[type], fn);
-        crossvent[op](el, type, fn);
-      }
-      */
       if (op == "add") {
         eventer.on(el,type,fn);
       } else {
@@ -926,27 +734,9 @@ define('skylark-dragula/dragula',[
     }
 
     function getOffset (el) {
-      /*
-      var rect = el.getBoundingClientRect();
-      return {
-        left: rect.left + getScroll('scrollLeft', 'pageXOffset'),
-        top: rect.top + getScroll('scrollTop', 'pageYOffset')
-      };
-      */
+
       return geom.pagePosition(el);
     }
-
-    /*
-    function getScroll (scrollProp, offsetProp) {
-      if (typeof global[offsetProp] !== 'undefined') {
-        return global[offsetProp];
-      }
-      if (documentElement.clientHeight) {
-        return documentElement[scrollProp];
-      }
-      return doc.body[scrollProp];
-    }
-    */
 
     function getElementBehindPoint (point, x, y) {
       //var p = point || {}; /
@@ -992,16 +782,6 @@ define('skylark-dragula/dragula',[
     
 
     function nextEl (el) {
-      /*
-      return el.nextElementSibling || manually();
-      function manually () {
-        var sibling = el;
-        do {
-          sibling = sibling.nextSibling;
-        } while (sibling && sibling.nodeType !== 1);
-        return sibling;
-      }
-      */
       return finder.nextSibling(el);
     }
 

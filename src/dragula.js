@@ -6,9 +6,8 @@ define([
   "skylark-domx-finder",
   "skylark-domx-geom",
   "skylark-domx-eventer",
-  "./emitter",
-  "./crossvent",
-  "./classes"
+  "skylark-domx-styler",
+  "./emitter"
 ],function(
   skylark,
   mouse,
@@ -17,9 +16,8 @@ define([
   finder,
   geom,
   eventer,
+  styler,
   emitter,
-  crossvent,
-  classes
 ){
 
     'use strict';
@@ -97,9 +95,9 @@ define([
       }
 
       function movements (remove) {
-        var op = remove ? 'remove' : 'add';
-        crossvent[op](documentElement, 'selectstart', preventGrabbed); // IE8
-        crossvent[op](documentElement, 'click', preventGrabbed);
+        var op = remove ? 'off' : 'on';
+        eventer[op](documentElement, 'selectstart', preventGrabbed); // IE8
+        eventer[op](documentElement, 'click', preventGrabbed);
       }
 
       function destroy () {
@@ -169,7 +167,7 @@ define([
         _offsetX = getCoord('pageX', e) - offset.left;
         _offsetY = getCoord('pageY', e) - offset.top;
 
-        classes.add(_copy || _item, 'gu-transit');
+        styler.addClass(_copy || _item, 'gu-transit');
         renderMirrorImage();
         drag(e);
       }
@@ -329,7 +327,7 @@ define([
         ungrab();
         removeMirrorImage();
         if (item) {
-          classes.rm(item, 'gu-transit');
+          styler.removeClass(item, 'gu-transit');
         }
         if (_renderTimer) {
           clearTimeout(_renderTimer);
@@ -435,11 +433,11 @@ define([
       }
 
       function spillOver (el) {
-        classes.rm(el, 'gu-hide');
+        styler.removeClass(el, 'gu-hide');
       }
 
       function spillOut (el) {
-        if (drake.dragging) { classes.add(el, 'gu-hide'); }
+        if (drake.dragging) { styler.addClass(el, 'gu-hide'); }
       }
 
       function renderMirrorImage () {
@@ -450,17 +448,17 @@ define([
         _mirror = _item.cloneNode(true);
         _mirror.style.width = getRectWidth(rect) + 'px';
         _mirror.style.height = getRectHeight(rect) + 'px';
-        classes.rm(_mirror, 'gu-transit');
-        classes.add(_mirror, 'gu-mirror');
+        styler.removeClass(_mirror, 'gu-transit');
+        styler.addClass(_mirror, 'gu-mirror');
         o.mirrorContainer.appendChild(_mirror);
         touchy(documentElement, 'add', 'mousemove', drag);
-        classes.add(o.mirrorContainer, 'gu-unselectable');
+        styler.addClass(o.mirrorContainer, 'gu-unselectable');
         drake.emit('cloned', _mirror, _item, 'mirror');
       }
 
       function removeMirrorImage () {
         if (_mirror) {
-          classes.rm(o.mirrorContainer, 'gu-unselectable');
+          styler.removeClass(o.mirrorContainer, 'gu-unselectable');
           touchy(documentElement, 'remove', 'mousemove', drag);
           getParent(_mirror).removeChild(_mirror);
           _mirror = null;
@@ -522,31 +520,6 @@ define([
 
     
     function touchy (el, op, type, fn) {
-      /*
-      var touch = {
-        mouseup: 'touchend',
-        mousedown: 'touchstart',
-        mousemove: 'touchmove'
-      };
-      var pointers = {
-        mouseup: 'pointerup',
-        mousedown: 'pointerdown',
-        mousemove: 'pointermove'
-      };
-      var microsoft = {
-        mouseup: 'MSPointerUp',
-        mousedown: 'MSPointerDown',
-        mousemove: 'MSPointerMove'
-      };
-      if (global.navigator.pointerEnabled) {
-        crossvent[op](el, pointers[type], fn);
-      } else if (global.navigator.msPointerEnabled) {
-        crossvent[op](el, microsoft[type], fn);
-      } else {
-        crossvent[op](el, touch[type], fn);
-        crossvent[op](el, type, fn);
-      }
-      */
       if (op == "add") {
         eventer.on(el,type,fn);
       } else {
@@ -574,27 +547,9 @@ define([
     }
 
     function getOffset (el) {
-      /*
-      var rect = el.getBoundingClientRect();
-      return {
-        left: rect.left + getScroll('scrollLeft', 'pageXOffset'),
-        top: rect.top + getScroll('scrollTop', 'pageYOffset')
-      };
-      */
+
       return geom.pagePosition(el);
     }
-
-    /*
-    function getScroll (scrollProp, offsetProp) {
-      if (typeof global[offsetProp] !== 'undefined') {
-        return global[offsetProp];
-      }
-      if (documentElement.clientHeight) {
-        return documentElement[scrollProp];
-      }
-      return doc.body[scrollProp];
-    }
-    */
 
     function getElementBehindPoint (point, x, y) {
       //var p = point || {}; /
@@ -640,16 +595,6 @@ define([
     
 
     function nextEl (el) {
-      /*
-      return el.nextElementSibling || manually();
-      function manually () {
-        var sibling = el;
-        do {
-          sibling = sibling.nextSibling;
-        } while (sibling && sibling.nodeType !== 1);
-        return sibling;
-      }
-      */
       return finder.nextSibling(el);
     }
 
