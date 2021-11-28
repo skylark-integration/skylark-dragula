@@ -40,8 +40,6 @@ define([
             this.containers = options.containers;
             this.destroy = options.destroy;
             this.options = options;
-            this.dragging = false;
-
         },
 
         isContainer : function(el) {

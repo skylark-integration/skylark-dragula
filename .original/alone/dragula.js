@@ -7,9 +7,8 @@ define([
   "skylark-domx-geom",
   "skylark-domx-eventer",
   "skylark-domx-styler",
-  "skylark-domx-plugins-dnd/draggable",
-  "skylark-domx-plugins-dnd/droppable",
-  "./_drake"
+  "./_drake",
+  "./_listen"
 ],function(
   skylark,
   mouse,
@@ -19,9 +18,8 @@ define([
   geom,
   eventer,
   styler,
-  DndDraggable,
-  DndDroppable,
-  Drake
+  Drake,
+  listen
 ){
 
     'use strict';
@@ -55,57 +53,16 @@ define([
         drake.on('over', spillOver).on('out', spillOut);
       }
 
-      var _context;
+      var listener = listen(drake,o);
+      listener.events();
 
-      drake.draggable = new  DndDraggable(noder.body(),{
-            ///source : options.items,
-            ///handle : options.handle,
-            ///draggingClass : options.draggingClass,
-            preparing : function(e) {
-                _context = drake.canStart(e.originalEvent.target);
-                if (_context) {
-                  e.dragSource = _context.item;
-                } else {
-                  e.dragSource = null;
-                }
-            },
-            started :function(e) {
-                e.ghost = e.dragSource;
-                drake.start(_context);
-
-            },
-            ended : function(e) {
-               drake.end();
-               _context = null;              
-            },
-            drake
-        });
-
-        
-        drake.droppable = new DndDroppable(noder.body(),{
-            started: function(e) {
-                if (e.dragging === drake.draggable) {
-                  e.acceptable = true;
-                  e.activeClass = "active";
-                  e.hoverClass = "over";                 
-                }
-            },
-            overing : function(e) {
-              drake.over(e.originalEvent.clientX,e.originalEvent.clientY);
-            },
-            dropped : function(e) {
-              //drake.end();
-            },
-            drake
-
-        });
       return drake;
 
    
 
       function destroy () {
-        ///listener.events(true);
-        ///listener.release({});
+        listener.events(true);
+        listener.release({});
       }
 
       function never () { 

@@ -86,6 +86,300 @@
 
 })(function(define,require) {
 
+define('skylark-domx-plugins-dnd/draggable',[
+    "skylark-langx/langx",
+    "skylark-domx-noder",
+    "skylark-domx-data",
+    "skylark-domx-finder",
+    "skylark-domx-geom",
+    "skylark-domx-eventer",
+    "skylark-domx-styler",
+    "skylark-devices-points/touch",
+    "skylark-domx-plugins-base",
+    "./dnd",
+    "./manager"
+], function(langx, noder, datax, finder, geom, eventer, styler, touch, plugins, dnd,manager) {
+    var on = eventer.on,
+        off = eventer.off,
+        attr = datax.attr,
+        removeAttr = datax.removeAttr,
+        offset = geom.pagePosition,
+        addClass = styler.addClass,
+        height = geom.height;
+
+
+
+    var Draggable = plugins.Plugin.inherit({
+        klassName: "Draggable",
+        
+        pluginName : "lark.dnd.draggable",
+
+        options : {
+            draggingClass : "dragging",
+            forceFallback : false
+        },
+
+        _construct: function(elm, options) {
+            this.overrided(elm,options);
+
+            var self = this,
+                options = this.options;
+
+            self.draggingClass = options.draggingClass;
+
+            ["preparing", "started", "ended", "moving"].forEach(function(eventName) {
+                if (langx.isFunction(options[eventName])) {
+                    self.on(eventName, options[eventName]);
+                }
+            });
+
+            touch.mousy(elm);
+
+            eventer.on(elm, {
+                "mousedown": function(e) {
+                    var options = self.options;
+                    if (options.handle) {
+                        if (langx.isFunction(options.handle)) {
+                            self.dragHandle = options.handle(e.target,self._elm);
+                        } else {
+                            self.dragHandle = finder.closest(e.target, options.handle,self._elm);
+                        }
+                        if (!self.dragHandle) {
+                            return;
+                        }
+                    }
+                    if (options.source) {
+                        if (langx.isFunction(options.source)) {
+                            self.dragSource =  options.source(e.target, self._elm);                            
+                        } else {
+                            self.dragSource = finder.closest(e.target, options.source,self._elm);                            
+                        }
+                    } else {
+                        self.dragSource = self._elm;
+                    }
+
+                    self.startPos = {
+                        x : e.clientX,
+                        y : e.clientY
+                    };
+
+                    manager.prepare(self,e);
+
+                },
+
+                "mouseup": function(e) {
+                    ///if (self.dragSource) {
+                    ///    //datax.attr(self.dragSource, "draggable", 'false');
+                    ///    self.dragSource = null;
+                    ///    self.dragHandle = null;
+                    ///}
+                },
+
+                "dragstart": function(e) {
+                    if (manager.dragging !== self) {
+                        return;
+                    }
+                    manager.start(self, e);
+                },
+
+                "dragend": function(e) {
+                    if (manager.dragging !== self) {
+                        return;
+                    }
+                    eventer.stop(e);
+
+                    if (!manager.dragging) {
+                        return;
+                    }
+
+                    manager.end(false);
+                }
+            });
+
+        }
+
+    });
+
+    plugins.register(Draggable,"draggable");
+
+    return dnd.Draggable = Draggable;
+});
+define('skylark-domx-plugins-dnd/droppable',[
+    "skylark-langx/langx",
+    "skylark-domx-noder",
+    "skylark-domx-data",
+    "skylark-domx-finder",
+    "skylark-domx-geom",
+    "skylark-domx-eventer",
+    "skylark-domx-styler",
+    "skylark-domx-plugins-base",
+    "./dnd",
+    "./manager"
+], function(langx, noder, datax, finder, geom, eventer, styler, plugins, dnd,manager) {
+    var on = eventer.on,
+        off = eventer.off,
+        attr = datax.attr,
+        removeAttr = datax.removeAttr,
+        offset = geom.pagePosition,
+        addClass = styler.addClass,
+        height = geom.height;
+
+
+    var Droppable = plugins.Plugin.inherit({
+        klassName: "Droppable",
+
+        pluginName : "lark.dnd.droppable",
+
+        options : {
+            draggingClass : "dragging"
+        },
+
+        _construct: function(elm, options) {
+            this.overrided(elm,options);
+
+            var self = this,
+                options = self.options,
+                draggingClass = options.draggingClass,
+                hoverClass,
+                activeClass,
+                acceptable = true;
+
+            ["started", "entered", "leaved", "dropped", "overing"].forEach(function(eventName) {
+                if (langx.isFunction(options[eventName])) {
+                    self.on(eventName, options[eventName]);
+                }
+            });
+
+            eventer.on(elm, {
+                "dragover": function(e) {
+                    e.stopPropagation()
+
+                    if (!acceptable) {
+                        return
+                    }
+
+                    var e2 = eventer.create("overing", {
+                        originalEvent : e,
+                        overElm: e.target,
+                        transfer: manager.draggingTransfer,
+                        acceptable: true
+                    });
+                    self.trigger(e2);
+
+                    if (e2.acceptable) {
+                        e.preventDefault() // allow drop
+
+                        ///e.dataTransfer.dropEffect = "copyMove";
+                    }
+
+                },
+
+                "dragenter": function(e) {
+                    var options = self.options,
+                        elm = self._elm;
+
+                    var e2 = eventer.create("entered", {
+                        originalEvent : e,
+                        transfer: manager.draggingTransfer
+                    });
+
+                    self.trigger(e2);
+
+                    e.stopPropagation()
+
+                    if (hoverClass && acceptable) {
+                        styler.addClass(elm, hoverClass)
+                    }
+                },
+
+                "dragleave": function(e) {
+                    var options = self.options,
+                        elm = self._elm;
+                    if (!acceptable) return false
+
+                    var e2 = eventer.create("leaved", {
+                        originalEvent : e,
+                        transfer: manager.draggingTransfer
+                    });
+
+                    self.trigger(e2);
+
+                    e.stopPropagation()
+
+                    if (hoverClass && acceptable) {
+                        styler.removeClass(elm, hoverClass);
+                    }
+                },
+
+                "drop": function(e) {
+                    var options = self.options,
+                        elm = self._elm;
+
+                    eventer.stop(e); // stops the browser from redirecting.
+
+                    if (!manager.dragging) return
+
+                    // manager.dragging.elm.removeClass('dragging');
+
+                    if (hoverClass && acceptable) {
+                        styler.addClass(elm, hoverClass)
+                    }
+
+                    var e2 = eventer.create("dropped", {
+                        originalEvent : e,
+                        transfer: manager.draggingTransfer
+                    });
+
+                    self.trigger(e2);
+
+                    manager.end(true)
+                }
+            });
+
+            manager.on("dndStarted", function(e) {
+                var e2 = eventer.create("started", {
+                    transfer: manager.draggingTransfer,
+                    acceptable: false,
+                    dragging : e.dragging 
+                });
+
+                self.trigger(e2);
+
+                acceptable = e2.acceptable;
+                hoverClass = e2.hoverClass;
+                activeClass = e2.activeClass;
+
+                if (activeClass && acceptable) {
+                    styler.addClass(elm, activeClass);
+                }
+
+            }).on("dndEnded", function(e) {
+                var e2 = eventer.create("ended", {
+                    transfer: manager.draggingTransfer,
+                    acceptable: false
+                });
+
+                self.trigger(e2);
+
+                if (hoverClass && acceptable) {
+                    styler.removeClass(elm, hoverClass);
+                }
+                if (activeClass && acceptable) {
+                    styler.removeClass(elm, activeClass);
+                }
+
+                acceptable = false;
+                activeClass = null;
+                hoverClass = null;
+            });
+
+        }
+    });
+
+    plugins.register(Droppable,"droppable");
+
+    return dnd.Droppable = Droppable;
+});
 define('skylark-langx-emitter/Emitter',[
     "skylark-langx-events"
 ],function(events){
@@ -223,6 +517,8 @@ define('skylark-dragula/_drake',[
             this.containers = options.containers;
             this.destroy = options.destroy;
             this.options = options;
+            this.dragging = false;
+
         },
 
         isContainer : function(el) {
@@ -560,204 +856,6 @@ define('skylark-dragula/_drake',[
     
     return Drake;
 });
-define('skylark-dragula/_listen',[
-  "skylark-langx/skylark",
-  "skylark-devices-points/mouse",
-  "skylark-devices-points/touch",
-  "skylark-domx-noder",
-  "skylark-domx-finder",
-  "skylark-domx-geom",
-  "skylark-domx-eventer",
-  "skylark-domx-styler",
-  "./_helpers"
-],function(
-  skylark,
-  mouse,
-  touch,
-  noder,
-  finder,
-  geom,
-  eventer,
-  styler,
-  helpers
- ){
-    'use strict';
-
-    var documentElement = noder.root(); 	
-
-
-	function listen(drake,options) {
-
-		var _offsetX; // reference x
-	    var _offsetY; // reference y
-	    var _moveX; // reference move x
-	    var _moveY; // reference move y
-		
-	    var _grabbed; // holds mousedown context until first mousemove
-
-
-		var _mirror; // mirror image
-
-		function renderMirrorImage () {
-			if (_mirror) {
-			  return;
-			}
-			var rect = drake._item.getBoundingClientRect();
-			_mirror = drake._item.cloneNode(true);
-			_mirror.style.width = helpers.getRectWidth(rect) + 'px';
-			_mirror.style.height = helpers.getRectHeight(rect) + 'px';
-			styler.removeClass(_mirror, 'gu-transit');
-			styler.addClass(_mirror, 'gu-mirror');
-			options.mirrorContainer.appendChild(_mirror);
-			helpers.touchy(documentElement, 'add', 'mousemove', drag);
-			styler.addClass(options.mirrorContainer, 'gu-unselectable');
-			drake.emit('cloned', _mirror, drake._item, 'mirror');
-		}
-
-		function removeMirrorImage () {
-			if (_mirror) {
-			  styler.removeClass(options.mirrorContainer, 'gu-unselectable');
-			  helpers.touchy(documentElement, 'remove', 'mousemove', drag);
-			  finder.parent(_mirror).removeChild(_mirror);
-			  _mirror = null;
-			}
-		}
-
-		function moveMirrorImage(x,y) {
-			_mirror.style.left = x + 'px';
-			_mirror.style.top = y + 'px';
-		}
-
-		function isMirrorRendered() {
-		  	return !!_mirror;
-		}
-
-		function preventGrabbed (e) {
-			if (_grabbed) {
-			  e.preventDefault();
-			}
-		}
-
-		function events (remove) {
-			var op = remove ? 'remove' : 'add';
-			helpers.touchy(documentElement, op, 'mousedown', grab);
-			helpers.touchy(documentElement, op, 'mouseup', release);
-		}
-
-		function eventualMovements (remove) {
-			var op = remove ? 'remove' : 'add';
-			helpers.touchy(documentElement, op, 'mousemove', startBecauseMouseMoved);
-		}
-
-
-		function movements (remove) {
-			var op = remove ? 'off' : 'on';
-			eventer[op](documentElement, 'selectstart', preventGrabbed); // IE8
-			eventer[op](documentElement, 'click', preventGrabbed);
-		} 
-
-		function grab (e) {
-			_moveX = e.clientX;
-			_moveY = e.clientY;
-
-			var ignore = helpers.whichMouseButton(e) !== 1 || e.metaKey || e.ctrlKey;
-			if (ignore) {
-			  return; // we only care about honest-to-god left clicks and touch events
-			}
-			var item = e.target;
-			var context = drake.canStart(item);
-			if (!context) {
-		  		return;
-			}
-			_grabbed = context;
-			eventualMovements();
-			if (e.type === 'mousedown') {
-		  		if (noder.isInput(item)) { // see also: https://github.com/bevacqua/dragula/issues/208
-		    		item.focus(); // fixes https://github.com/bevacqua/dragula/issues/176
-		  		} else {
-		    		e.preventDefault(); // fixes https://github.com/bevacqua/dragula/issues/155
-		  		}
-			}
-		}
-
-		function startBecauseMouseMoved (e) {
-			if (!_grabbed) {
-		  		return;
-			}
-			if (helpers.whichMouseButton(e) === 0) {
-		  		release({});
-		  		return; // when text is selected on an input and then dragged, mouseup doesn't fire. this is our only hope
-			}
-			// truthy check fixes #239, equality fixes #207
-			if (e.clientX !== void 0 && e.clientX === _moveX && e.clientY !== void 0 && e.clientY === _moveY) {
-				return;
-			}
-
-			var grabbed = _grabbed; // call to end() unsets _grabbed
-			eventualMovements(true);
-			movements();
-			drake.end();
-			drake.start(grabbed);
-
-			var offset = geom.pagePosition(drake._item);
-			_offsetX = helpers.getCoord('pageX', e) - offset.left;
-			_offsetY = helpers.getCoord('pageY', e) - offset.top;
-
-			styler.addClass(drake._copy || drake._item, 'gu-transit');
-			renderMirrorImage();
-			drag(e);
-		}
-
-		function ungrab () {
-			_grabbed = false;
-			eventualMovements(true);
-			movements(true);
-		}
-
-		function release (e) {
-			ungrab();
-            removeMirrorImage();
-			if (!drake.dragging) {
-			  return;
-			}
-			var item = drake._copy || drake._item;
-			var clientX = helpers.getCoord('clientX', e);
-			var clientY = helpers.getCoord('clientY', e);
-			var dropTarget = drake.findDropTarget(clientX, clientY);
-			if (dropTarget && ((drake._copy &&  options.copySortSource) || (!drake._copy || dropTarget !== drake._source))) {
-			  drake.drop(item, dropTarget);
-			} else if (options.removeOnSpill) {
-			  drake.remove();
-			} else {
-			  drake.cancel();
-			}
-		}
-
-		function drag (e) {
-			if (!isMirrorRendered()) {
-			  return;
-			}
-			e.preventDefault();
-
-			var clientX = helpers.getCoord('clientX', e);
-			var clientY = helpers.getCoord('clientY', e);
-
-
-			moveMirrorImage(clientX - _offsetX,clientY - _offsetY);
-
-			drake.over(clientX,clientY);
-		}
-
-		return {
-			events,
-			grab,
-			ungrab,
-			release
-		}
-	}
-
-	return listen;
-});
 define('skylark-dragula/dragula',[
   "skylark-langx/skylark",
   "skylark-devices-points/mouse",
@@ -767,8 +865,9 @@ define('skylark-dragula/dragula',[
   "skylark-domx-geom",
   "skylark-domx-eventer",
   "skylark-domx-styler",
-  "./_drake",
-  "./_listen"
+  "skylark-domx-plugins-dnd/draggable",
+  "skylark-domx-plugins-dnd/droppable",
+  "./_drake"
 ],function(
   skylark,
   mouse,
@@ -778,8 +877,9 @@ define('skylark-dragula/dragula',[
   geom,
   eventer,
   styler,
-  Drake,
-  listen
+  DndDraggable,
+  DndDroppable,
+  Drake
 ){
 
     'use strict';
@@ -813,16 +913,64 @@ define('skylark-dragula/dragula',[
         drake.on('over', spillOver).on('out', spillOut);
       }
 
-      var listener = listen(drake,o);
-      listener.events();
 
+
+      ///var listener = listen(drake,o);
+      ///listener.events();
+
+
+
+      var _context;
+
+      drake.draggable = new  DndDraggable(noder.body(),{
+            ///source : options.items,
+            ///handle : options.handle,
+            ///draggingClass : options.draggingClass,
+            preparing : function(e) {
+                _context = drake.canStart(e.originalEvent.target);
+                if (_context) {
+                  e.dragSource = _context.item;
+                } else {
+                  e.dragSource = null;
+                }
+            },
+            started :function(e) {
+                e.ghost = e.dragSource;
+                drake.start(_context);
+
+            },
+            ended : function(e) {
+               drake.end();
+               _context = null;              
+            },
+            drake
+        });
+
+        
+        drake.droppable = new DndDroppable(noder.body(),{
+            started: function(e) {
+                if (e.dragging === drake.draggable) {
+                  e.acceptable = true;
+                  e.activeClass = "active";
+                  e.hoverClass = "over";                 
+                }
+            },
+            overing : function(e) {
+              drake.over(e.originalEvent.clientX,e.originalEvent.clientY);
+            },
+            dropped : function(e) {
+              //drake.end();
+            },
+            drake
+
+        });
       return drake;
 
    
 
       function destroy () {
-        listener.events(true);
-        listener.release({});
+        ///listener.events(true);
+        ///listener.release({});
       }
 
       function never () { 
